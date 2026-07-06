@@ -1,0 +1,50 @@
+services:
+  # 電商資料庫
+  mall-mysql:
+    image: mysql:8.0
+    container_name: mall-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mall_order
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # 商品庫存快取
+  mall-redis:
+    image: redis:7-alpine
+    container_name: mall-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    container_name: product-service
+    ports:
+      - "50051:50051"
+    environment:
+      - MYSQL_HOST=mall-mysql  # 告訴 Go 服務，MySQL 在名為 mall-mysql 的貨櫃
+      - REDIS_HOST=mall-redis  # 告訴 Go 服務，Redis 在名為 mall-redis 的貨櫃
+    depends_on:
+      - mall-mysql
+      - mall-redis
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    container_name: order-service
+    environment:
+      - MYSQL_HOST=mall-mysql
+      - PRODUCT_SERVICE_HOST=product-service # 透過 gRPC 找名為 product-service 的貨櫃
+    depends_on:
+      - product-service
+
+volumes:
+  mysql_data:
+  redis_data:

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package product;
+
+// 為了讓 Go 能夠編譯，指定生成的 Go 套件路徑
+option go_package = "./productpb";
+
+// 定義商品服務有哪些 RPC 接口
+service ProductService {
+  // 檢查並扣減庫存（下單時 Order Service 會呼叫這個）
+  rpc DeductStock (DeductStockRequest) returns (DeductStockResponse);
+  // 獲取商品詳細資訊
+  rpc GetProduct (GetProductRequest) returns (GetProductResponse);
+}
+
+// 扣減庫存的請求內容
+message DeductStockRequest {
+  int64 product_id = 1;
+  int32 quantity = 2;
+}
+
+// 扣減庫存的回應結果
+message DeductStockResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// 查詢商品的請求內容
+message GetProductRequest {
+  int64 product_id = 1;
+}
+
+// 查詢商品的回應結果
+message GetProductResponse {
+  int64 id = 1;
+  string name = 2;
+  int64 price = 3;
+  int32 stock = 4;
+}
