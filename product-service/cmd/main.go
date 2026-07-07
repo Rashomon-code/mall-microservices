@@ -7,6 +7,7 @@ import (
 	productpb "mall/proto"
 	"net"
 	"os"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
@@ -21,9 +22,22 @@ func main() {
 
 	// dsn 格式: 使用者:密碼@tcp(主機:連接埠)/資料庫名稱?參數1&參數2
 	dsn := "root:rootpassword@tcp(" + mysqlHost + ":3306)/mall_order?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+	var db *gorm.DB
+	var err error
+
+	for i := 0; i < 5; i++ {
+		log.Printf("[Product Service] 正在嘗試連線 MySQL... (第 %d/10 次)", i+1)
+		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err == nil {
+			break
+		}
+		log.Printf("MySQL 尚未就緒，2 秒後重試... 錯誤原因: %v", err)
+		time.Sleep(2 * time.Second)
+	}
+
 	if err != nil {
-		log.Fatalf("無法連線至 MySQL: %v", err)
+		log.Fatalf("無法連線至 MySQL，已達最大重試次數: %v", err)
 	}
 	log.Println("[Product Service] MySQL 連線成功！")
 

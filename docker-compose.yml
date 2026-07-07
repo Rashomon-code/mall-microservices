@@ -10,6 +10,11 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
 
   # 商品庫存快取
   mall-redis:
@@ -19,6 +24,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
       
   product-service:
     build:
@@ -31,8 +41,10 @@ services:
       - MYSQL_HOST=mall-mysql  # 告訴 Go 服務，MySQL 在名為 mall-mysql 的貨櫃
       - REDIS_HOST=mall-redis  # 告訴 Go 服務，Redis 在名為 mall-redis 的貨櫃
     depends_on:
-      - mall-mysql
-      - mall-redis
+      mall-mysql:
+          condition: service_healthy
+      mall-redis:
+          condition: service_healthy
 
   order-service:
     build:

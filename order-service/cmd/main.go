@@ -17,9 +17,20 @@ import (
 func main() {
 	mysqlHost := getEnv("MYSQL_HOST", "127.0.0.1")
 	dsn := "root:rootpassword@tcp(" + mysqlHost + ":3306)/mall_order?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+	var err error
+	var db *gorm.DB
+
+	for i := 0; i < 5; i++ {
+		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err == nil {
+			break
+		}
+		log.Printf("MySQL 尚未就緒，2 秒後重試... 錯誤原因: %v", err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("無法連線至 MySQL: %v", err)
+		log.Fatalf("連接失敗,錯誤原因: %v", err)
 	}
 	log.Println("[Order Service] MySQL 連線成功！")
 
