@@ -57,6 +57,10 @@ func main() {
 	log.Println("\n--- 第二次下單測試：購買 3 件 ---")
 	result2 := orderServer.CreateOrder(ctx, 101, 3)
 	log.Printf("結果: %s", result2)
+
+	log.Println("\n--- 取消訂單測試： 取消三件")
+	result3 := orderServer.CancelOrder()
+	log.Printf("結果: %s", result3)
 }
 
 func getEnv(key, fallback string) string {
