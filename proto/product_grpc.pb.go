@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v3.21.12
-// source: product.proto
+// source: proto/product.proto
 
 package productpb
 
@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ProductService_DeductStock_FullMethodName = "/product.ProductService/DeductStock"
 	ProductService_GetProduct_FullMethodName  = "/product.ProductService/GetProduct"
+	ProductService_AddStock_FullMethodName    = "/product.ProductService/AddStock"
 )
 
 // ProductServiceClient is the client API for ProductService service.
@@ -33,6 +34,8 @@ type ProductServiceClient interface {
 	DeductStock(ctx context.Context, in *DeductStockRequest, opts ...grpc.CallOption) (*DeductStockResponse, error)
 	// 獲取商品詳細資訊
 	GetProduct(ctx context.Context, in *GetProductRequest, opts ...grpc.CallOption) (*GetProductResponse, error)
+	// 增加庫存
+	AddStock(ctx context.Context, in *AddStockRequest, opts ...grpc.CallOption) (*AddStockResponse, error)
 }
 
 type productServiceClient struct {
@@ -63,6 +66,16 @@ func (c *productServiceClient) GetProduct(ctx context.Context, in *GetProductReq
 	return out, nil
 }
 
+func (c *productServiceClient) AddStock(ctx context.Context, in *AddStockRequest, opts ...grpc.CallOption) (*AddStockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddStockResponse)
+	err := c.cc.Invoke(ctx, ProductService_AddStock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductServiceServer is the server API for ProductService service.
 // All implementations must embed UnimplementedProductServiceServer
 // for forward compatibility.
@@ -73,6 +86,8 @@ type ProductServiceServer interface {
 	DeductStock(context.Context, *DeductStockRequest) (*DeductStockResponse, error)
 	// 獲取商品詳細資訊
 	GetProduct(context.Context, *GetProductRequest) (*GetProductResponse, error)
+	// 增加庫存
+	AddStock(context.Context, *AddStockRequest) (*AddStockResponse, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -88,6 +103,9 @@ func (UnimplementedProductServiceServer) DeductStock(context.Context, *DeductSto
 }
 func (UnimplementedProductServiceServer) GetProduct(context.Context, *GetProductRequest) (*GetProductResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProduct not implemented")
+}
+func (UnimplementedProductServiceServer) AddStock(context.Context, *AddStockRequest) (*AddStockResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddStock not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 func (UnimplementedProductServiceServer) testEmbeddedByValue()                        {}
@@ -146,6 +164,24 @@ func _ProductService_GetProduct_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProductService_AddStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddStockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductServiceServer).AddStock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProductService_AddStock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductServiceServer).AddStock(ctx, req.(*AddStockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProductService_ServiceDesc is the grpc.ServiceDesc for ProductService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,7 +197,11 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetProduct",
 			Handler:    _ProductService_GetProduct_Handler,
 		},
+		{
+			MethodName: "AddStock",
+			Handler:    _ProductService_AddStock_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "product.proto",
+	Metadata: "proto/product.proto",
 }
