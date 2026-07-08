@@ -60,7 +60,7 @@ func (s *ProductServer) DeductStock(ctx context.Context, req *productpb.DeductSt
 
 func (s *ProductServer) AddStock(ctx context.Context, req *productpb.AddStockRequest) (*productpb.AddStockResponse, error) {
 	log.Printf("[Product Service] 收到增加庫存請求: 商品ID=%d, 數量=%d", req.ProductId, req.Quantity)
-	redisKey := fmt.Sprintf("Product:stock:%d", req.ProductId)
+	redisKey := fmt.Sprintf("product:stock:%d", req.ProductId)
 	newStock, err := s.RDB.IncrBy(ctx, redisKey, int64(req.Quantity)).Result()
 	if err != nil {
 		return &productpb.AddStockResponse{Success: false, Message: "系統錯誤，無法讀取庫存"}, nil

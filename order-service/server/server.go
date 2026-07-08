@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"log"
 	productpb "mall/proto"
 	"time"
@@ -33,7 +34,7 @@ func NewOrderServer(db *gorm.DB, pc productpb.ProductServiceClient) *OrderServer
 	}
 }
 
-func (s *OrderServer) CreateOrder(ctx context.Context, productID int64, quantity int32) string {
+func (s *OrderServer) CreateOrder(ctx context.Context, productID int64, quantity int32) (int64, error) {
 	log.Printf("[Order Service] 收到下單請求 -> 商品ID: %d, 數量: %d", productID, quantity)
 
 	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -46,12 +47,12 @@ func (s *OrderServer) CreateOrder(ctx context.Context, productID int64, quantity
 
 	if err != nil {
 		log.Printf("[Order Service] 呼叫 Product Service 失敗: %v", err)
-		return "系統繁忙，請稍後再試"
+		return 0, errors.New("系統繁忙，請稍後再試")
 	}
 
 	if !resp.Success {
 		log.Printf("[Order Service] 扣減庫存失敗: %s", resp.Message)
-		return resp.Message
+		return 0, errors.New(resp.Message)
 	}
 
 	order := OrderModel{
@@ -62,11 +63,11 @@ func (s *OrderServer) CreateOrder(ctx context.Context, productID int64, quantity
 
 	if err := s.DB.Create(&order).Error; err != nil {
 		log.Printf("[Order Service] 訂單寫入資料庫失敗: %v", err)
-		return "訂單建立失敗"
+		return 0, errors.New("訂單建立失敗")
 	}
 
 	log.Printf("[Order Service] 訂單建立成功！訂單ID: %d", order.ID)
-	return "下單成功！"
+	return order.ID, nil
 }
 
 func (s *OrderServer) CancelOrder(ctx context.Context, orderId int64, productId int64, quantity int32) string {

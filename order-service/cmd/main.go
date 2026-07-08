@@ -48,19 +48,28 @@ func main() {
 
 	ctx := context.Background()
 
-	log.Println("\n--- 第一次下單測試：購買 3 件 ---")
-	result1 := orderServer.CreateOrder(ctx, 101, 3)
-	log.Printf("結果: %s", result1)
+	log.Println("\n--- 下單：購買 3 件 ---")
+	orderId, err := orderServer.CreateOrder(ctx, 101, 3)
+	if err != nil {
+		log.Fatalf("下單失敗: %v", err)
+	}
+	log.Printf("下單成功,訂單ID: %d", orderId)
 
 	time.Sleep(1 * time.Second)
 
-	log.Println("\n--- 第二次下單測試：購買 3 件 ---")
-	result2 := orderServer.CreateOrder(ctx, 101, 3)
-	log.Printf("結果: %s", result2)
+	log.Println("\n--- 取消訂單 ---")
+	result := orderServer.CancelOrder(ctx, orderId, 101, 3)
+	log.Printf("結果: %s", result)
 
-	log.Println("\n--- 取消訂單測試： 取消三件")
-	result3 := orderServer.CancelOrder()
-	log.Printf("結果: %s", result3)
+	time.Sleep(1 * time.Second)
+
+	log.Println("\n--- 再次下單 ---")
+	newOrderId, err := orderServer.CreateOrder(ctx, 101, 4)
+	if err != nil {
+		log.Printf("結果: 下單失敗，原因: %v (代表庫存回補失敗)", err)
+	} else {
+		log.Printf("結果: 下單成功！新訂單 ID = %d (代表 Redis 庫存已成功回補！)", newOrderId)
+	}
 }
 
 func getEnv(key, fallback string) string {
