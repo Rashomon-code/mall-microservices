@@ -70,7 +70,7 @@ func (s *OrderServer) CreateOrder(ctx context.Context, productID int64, quantity
 	return order.ID, nil
 }
 
-func (s *OrderServer) CancelOrder(ctx context.Context, orderId int64, productId int64, quantity int32) string {
+func (s *OrderServer) CancelOrder(ctx context.Context, orderId int64, productId int64, quantity int32) (string, error) {
 	log.Printf("[Order Service] 收到取消請求 -> 商品ID: %d, 數量: %d", productId, quantity)
 
 	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -82,7 +82,7 @@ func (s *OrderServer) CancelOrder(ctx context.Context, orderId int64, productId 
 	})
 	if err != nil {
 		log.Printf("[Order Service] 呼叫 Product Service 失敗: %v", err)
-		return "請求失敗，請稍後再試"
+		return "請求失敗，請稍後再試", err
 	}
 
 	if !resp.Success {
@@ -92,12 +92,12 @@ func (s *OrderServer) CancelOrder(ctx context.Context, orderId int64, productId 
 	result := s.DB.Model(&OrderModel{}).Where("ID = ?", orderId).Update("Status", "CANCELED")
 	if result.Error != nil {
 		log.Printf("資料庫更新失敗: %v", result.Error)
-		return "資料庫未更新！"
+		return "資料庫未更新！", err
 	}
 
 	if result.RowsAffected == 0 {
 		log.Println("沒有任何資料被更新（可能找不到該 ID，或是新值與舊值一樣）")
 	}
 
-	return "取消成功！"
+	return "取消成功！", nil
 }

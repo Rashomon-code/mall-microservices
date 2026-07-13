@@ -10,6 +10,8 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - mall-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
       interval: 3s
@@ -20,15 +22,33 @@ services:
   mall-redis:
     image: redis:7-alpine
     container_name: mall-redis
+    restart: always
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - mall-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
       timeout: 2s
       retries: 5
+
+  mall-rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: mall_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=password123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - mall-network
       
   product-service:
     build:
@@ -40,6 +60,9 @@ services:
     environment:
       - MYSQL_HOST=mall-mysql  # 告訴 Go 服務，MySQL 在名為 mall-mysql 的貨櫃
       - REDIS_HOST=mall-redis  # 告訴 Go 服務，Redis 在名為 mall-redis 的貨櫃
+      - RABBITMQ_HOST=mall_rabbitmq
+    networks:
+      - mall-network
     depends_on:
       mall-mysql:
           condition: service_healthy
@@ -54,9 +77,17 @@ services:
     environment:
       - MYSQL_HOST=mall-mysql
       - PRODUCT_SERVICE_HOST=product-service # 透過 gRPC 找名為 product-service 的貨櫃
+      - RABBITMQ_HOST=mall_rabbitmq
+    networks:
+      - mall-network
     depends_on:
       - product-service
 
 volumes:
   mysql_data:
   redis_data:
+  rabbitmq_data:
+
+networks:
+  mall-network:
+    driver: bridge

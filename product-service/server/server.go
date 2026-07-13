@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"mall/product-service/mq"
 	productpb "mall/proto"
 
 	"github.com/redis/go-redis/v9"
@@ -99,4 +100,18 @@ func (s *ProductServer) GetProduct(ctx context.Context, req *productpb.GetProduc
 		Price: prod.Price,
 		Stock: stock,
 	}, nil
+}
+
+func (s *ProductServer) HandleCancelOrderMQ(msg mq.OrderMessage) {
+	log.Printf("[MQ 接收端] 收到取消訂單，準備操作 SQL 退回庫存。商品 ID: %d, 數量: %d", msg.ProductID, msg.Quantity)
+	ctx := context.Background()
+	redisKey := fmt.Sprintf("product:stock:%d", msg.ProductID)
+
+	newStock, err := s.RDB.IncrBy(ctx, redisKey, int64(msg.Quantity)).Result()
+	if err != nil {
+		log.Printf("[Product MQ 錯誤] 異步回補 Redis 庫存失敗: %v", err)
+		return
+	}
+
+	log.Printf("[Product MQ 異步監聽] 庫存回補成功！目前庫存: %d", newStock)
 }

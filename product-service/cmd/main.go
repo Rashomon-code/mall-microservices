@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"mall/product-service/mq"
 	"mall/product-service/server"
 	productpb "mall/proto"
 	"net"
@@ -19,7 +20,6 @@ func main() {
 	ctx := context.Background()
 
 	mysqlHost := getEnv("MYSQL_HOST", "127.0.0.1")
-
 	// dsn 格式: 使用者:密碼@tcp(主機:連接埠)/資料庫名稱?參數1&參數2
 	dsn := "root:rootpassword@tcp(" + mysqlHost + ":3306)/mall_order?charset=utf8mb4&parseTime=True&loc=Local"
 
@@ -63,9 +63,20 @@ func main() {
 		log.Fatalf("無法監聽連接埠: %v", err)
 	}
 
+	mqManger, err := mq.InitRabbitMQ("amqp://admin:password123@mall_rabbitmq:5672/")
+	if err != nil {
+		log.Fatalf("MQ初始化失敗: %v", nil)
+	}
+	defer mqManger.Close()
+
 	grpcServer := grpc.NewServer()
 	productServer := server.NewProductServer(db, rdb)
 	productpb.RegisterProductServiceServer(grpcServer, productServer)
+
+	err = mqManger.StartOrderListener("order_queue", 5, productServer.HandleCancelOrderMQ)
+	if err != nil {
+		log.Fatalf("MQ 監聽器啟動失敗: %v", err)
+	}
 
 	log.Println("[Product Service] gRPC 伺服器正在 port :50051 運行中...")
 	if err := grpcServer.Serve(lis); err != nil {
